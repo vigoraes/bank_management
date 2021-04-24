@@ -52,7 +52,8 @@ class Conta{
 
 private:
 	string conta, tipo_conta, operacoes, s_date;
-	int saldo, tempo_transacoes;
+	int tempo_transacoes;
+	float saldo;
 	time_t date;
 	struct EXTRATO{
 		string horario, tipo, valor;
@@ -181,12 +182,10 @@ public:
 		while ((pos = s.find(separador)) != string::npos) {
 		    token = s.substr(0, pos);
 		  	splitado.push_back(token);
-		    //cout << token <<endl;
 		    s.erase(0, pos + 1);
 		    index++;
 		}
 		if(finished) splitado.push_back(s);
-		//cout << s << endl;
 		return splitado;
 	}
 	
@@ -205,8 +204,8 @@ public:
 	void updateSaldo(){
 		if(saldo < 0){
 			int minutos = minutosPassados(extrato_.back().horario);
-			int debitado = debitadoSaldo(minutos);
-			cout << debitado << endl;
+			float debitado = debitadoSaldo(minutos);
+			//cout << debitado << endl;
 			if(minutos > 0){
 				struct EXTRATO up;
 				up.horario = s_date;
@@ -239,18 +238,21 @@ public:
 		return -1 * difftime( t_horario, date) / 60 - 60;
 	}
 
-	int debitadoSaldo(int minutosPassados){
-		int total = 0;
+	float debitadoSaldo(int minutosPassados){
+		float debitado = 0;
 		for(int i = 0; i < minutosPassados; i++){
-			saldo += saldo * 0.001;
-			total += saldo * 0.001;
+			debitado += saldo * 0.001;
 		}
-		return total;
+		debitado = (debitado * 100) / 100;
+		saldo += debitado;
+		return debitado;
 	}
 
 };
 
 int main(int argc, char const *argv[]){
+	cout << fixed;
+	cout.precision(2);
 	Login user;
 	while(!user.login()); //enquanto o usuario não fornecer conta e senha corretas, o programa pedirá o login
 	Conta conta(user.getConta());
