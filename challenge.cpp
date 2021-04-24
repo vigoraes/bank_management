@@ -21,8 +21,6 @@ public:
 
 	string getConta(){ return conta;}
 
-	string getSenha(){ return senha;}
-
 	bool login(){
 		init();
 		string check_login, check_senha, tmp;
@@ -34,8 +32,8 @@ public:
 			check_senha.pop_back(); //deleta o '\n' se nao for a ultima linha		
 			getline(logins, tmp); //pula a linha em branco
 			
-			if(check_login == getConta()){
-				if(check_senha == getSenha()){
+			if(check_login == conta){
+				if(check_senha == senha){
 					cout << "\nLogin realizado\n";
 					logins.close();
 					return true;
@@ -208,13 +206,14 @@ public:
 		if(saldo < 0){
 			int minutos = minutosPassados(extrato_.back().horario);
 			int debitado = debitadoSaldo(minutos);
+			cout << debitado << endl;
 			if(minutos > 0){
 				struct EXTRATO up;
 				up.horario = s_date;
-				cout << up.horario << " horario" << endl;
+				//cout << up.horario << " horario" << endl;
 				up.tipo = "Débito";
-				up.valor = get_s_valor(debitado);
-				cout << debitado << " valor" << endl;
+				up.valor = '(' + to_string(debitado) + ')';
+				//cout << debitado << " valor" << endl;
 				extrato_.push_back(up);
 			}
 		}
@@ -229,14 +228,14 @@ public:
 	}
 		
 	int minutosPassados(string horario){
-		cout << horario << endl;
+		//cout << horario << endl;
 		//cout << s_date << endl;
 		char horario_array[17];
 		strcpy(horario_array, horario.c_str());
 		struct tm tm;
 		strptime(horario_array, "%d/%m/%y %X", &tm);
 		time_t t_horario = mktime(&tm);
-		cout << -1 * difftime( t_horario, date) / 60 - 60<< " minutosPassados\n";
+		//cout << -1 * difftime( t_horario, date) / 60 - 60<< " minutosPassados\n";
 		return -1 * difftime( t_horario, date) / 60 - 60;
 	}
 
