@@ -212,7 +212,7 @@ public:
 				up.horario = s_date;
 				//cout << up.horario << " horario" << endl;
 				up.tipo = "Débito";
-				up.valor = '(' + to_string(debitado) + ')';
+				up.valor = '(' + to_string(debitado * -1) + ')';
 				//cout << debitado << " valor" << endl;
 				extrato_.push_back(up);
 			}
@@ -242,8 +242,8 @@ public:
 	int debitadoSaldo(int minutosPassados){
 		int total = 0;
 		for(int i = 0; i < minutosPassados; i++){
-			saldo += saldo * 0.01;
-			total += saldo * 0.01;
+			saldo += saldo * 0.001;
+			total += saldo * 0.001;
 		}
 		return total;
 	}
