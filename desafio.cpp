@@ -8,6 +8,7 @@ class Transactions{
 private:
 	int id_accountUser;
 	string option;
+	
 	//struct e vetor que armazenam os dados
 	struct TRANSACTION{
 		int id, id_account;
@@ -26,13 +27,14 @@ private:
 
 public:
 	Transactions(){
-		rc = sqlite3_open("base.db", &db);		
+		
 	}
 
 	void init(int id_accountUser, string option){
 		this->id_accountUser = id_accountUser;
 		this->option = option;
 		
+		rc = sqlite3_open("base.db", &db);	
 		dataRetrieve();
 		
 		if(option == "Extrato") printTransactions();
