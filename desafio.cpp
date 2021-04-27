@@ -1,13 +1,14 @@
 #include <iostream>
 #include <sqlite3.h>
 #include <vector>
+#include <sstream>
 using namespace std;
 
-//classe para o bd transações
+//classe para tabela transações
 class Transactions{
 private:
 	int id_accountUser;
-	string option;
+	string option, now;
 	
 	//struct e vetor que armazenam os dados
 	struct TRANSACTION{
@@ -18,7 +19,7 @@ private:
 	};
 	vector<TRANSACTION> v;
 
-	//variaveis dos bd
+	//variaveis do bd
 	sqlite3 *db;
 	char *zErrMsg = 0;
 	int rc;
@@ -33,13 +34,10 @@ public:
 	void init(int id_accountUser, string option){
 		this->id_accountUser = id_accountUser;
 		this->option = option;
-			
-		dataRetrieve();
-		
-		if(option == "Extrato") printTransactions();
-	}
 
-	//função de armazenamento de dados do bd
+		dataRetrieve();		
+	}
+	
 	static int callback_Transactions(void *data, int argc, char **argv, char **azColName){
 		vector<TRANSACTION>* v = static_cast<vector<TRANSACTION>*>(data);
 		
@@ -47,11 +45,18 @@ public:
 		return 0;
 	}
 
+	//função de armazenamento de dados do bd
 	void dataRetrieve(){
+		v.clear();
 		//preparando o comando sql
 		string sql = "SELECT * from transações\nWHERE id_conta = " + to_string(id_accountUser) + ";";
 		//executando o comando e armazenando os dados na struct
 		rc = sqlite3_exec(db, sql.c_str(), callback_Transactions, &v, &zErrMsg);
+
+		if( rc != SQLITE_OK ) {
+	      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+	      sqlite3_free(zErrMsg);
+	   	}
 	}
 
 	void close(){
@@ -61,14 +66,56 @@ public:
 	//printa o extrato
 	void printTransactions(){
 		cout << "\t# EXTRATO #\n";
+		string value;
 		for(size_t i = 0; i < v.size(); i++){
-			cout << v.at(i).s_hour << " " << v.at(i).type_transation << " R$ " << v.at(i).value << endl; 
+			value = to_string_with_precision(v.at(i).value); 
+			cout << v.at(i).s_hour << " " << v.at(i).type_transation << " R$ " << value << endl; 
 		}
 		cout << "\n";
 	}
+
+	int withDraw(double balance, string account_type){
+		double value;
+		cout << "Selecione o valor do saque que deseja efetuar: "; 
+		cin >> value;
+
+		if(value > balance && account_type == "normal"){
+			cout << "\nNão é possível sacar o valor desejado. (Valor maior que saldo da conta)\n\n";
+			return 0;
+		}else{
+			balance -= value;
+
+			//preparando o comando sql
+			string sql = "INSERT INTO accounts (horario, tipo, valor, id_conta) VALUES (" + now + ", " + account_type + ", " + to_string(value) + ", " + to_string(id_accountUser) + ");";
+			//executando o comando e armazenando os dados na struct
+			rc = sqlite3_exec(db, sql.c_str(), callback_Transactions, &v, &zErrMsg);
+
+			if( rc != SQLITE_OK ) {
+		      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		      sqlite3_free(zErrMsg);
+		   	}
+
+		   	return balance;
+	   	}
+	}
+
+	// string getNowTime(){
+
+	// }
+
+	template <typename T>
+	string to_string_with_precision(const T a_value, const int n = 2){ 
+	    std::ostringstream out;
+	    out.precision(n);
+		if(a_value < 0) out << '(' << std::fixed << a_value << ')';
+		else out << std::fixed << a_value; 
+	    return out.str();
+	}
+
+
 };
 
-//class para o bd accounts
+//class para a tabela accounts
 class Users{
 
 private:
@@ -82,7 +129,7 @@ private:
 	};
 	
 	
-	//variaveis dos bd
+	//variaveis do bd
 	sqlite3 *db;
 	char *zErrMsg = 0;
 	int rc;
@@ -119,14 +166,6 @@ public:
 		cout << "\n"; 
 	}
 
-	void dataRetrieve(){
-		//preparando o comando sql
-		string sql = "SELECT * from accounts\nWHERE conta_corrente = " + check_account + " AND senha = " + check_password + ";";
-		//executando o comando e armazenando os dados na struct
-		rc = sqlite3_exec(db, sql.c_str(), callback_User, &u, &zErrMsg);
-	}
-
-	//função de armazenamento de dados do bd
 	static int callback_User(void *data, int argc, char **argv, char **azColName){
 		USER *u = (USER *)data;
 		u->id = atoi(argv[0]);
@@ -136,6 +175,31 @@ public:
 		u->balance = atof(argv[4]);
 		//cout << "Id = " << u->id << " account_number = " << u->account_number << " password = " << u->password << " account_type = " << u->account_type << " balance = " << u->balance << endl; 
 		return 0;
+	}
+
+	//função de armazenamento de dados do bd
+	void dataRetrieve(){
+		//preparando o comando sql
+		string sql = "SELECT * from accounts\nWHERE conta_corrente = " + check_account + " AND senha = " + check_password + ";";
+		//executando o comando e armazenando os dados na struct
+		rc = sqlite3_exec(db, sql.c_str(), callback_User, &u, &zErrMsg);
+
+		if( rc != SQLITE_OK ) {
+	      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+	      sqlite3_free(zErrMsg);
+	   }
+	}
+
+	void updateData(){
+		//preparando o comando sql
+		string sql = "UPDATE accounts SET saldo = " + to_string(u.balance) + " WHERE ID = " + to_string(u.id) + ";\nSELECT * from accounts\nWHERE ID = " + to_string(u.id) + ";";
+		//executando o comando e armazenando os dados na struct
+		rc = sqlite3_exec(db, sql.c_str(), callback_User, &u, &zErrMsg);
+
+		if( rc != SQLITE_OK ) {
+	      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+	      sqlite3_free(zErrMsg);
+	   	}
 	}
 	
 	void option(){
@@ -158,6 +222,7 @@ public:
 					break;
 				case 2:
 					transaction.init(u.id, "Extrato");
+					transaction.printTransactions();
 					break;
 				case 3:
 					transaction.init(u.id, "Saque");	
