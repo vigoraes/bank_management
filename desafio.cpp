@@ -27,14 +27,13 @@ private:
 
 public:
 	Transactions(){
-		
+		rc = sqlite3_open("base.db", &db);
 	}
 
 	void init(int id_accountUser, string option){
 		this->id_accountUser = id_accountUser;
 		this->option = option;
-		
-		rc = sqlite3_open("base.db", &db);	
+			
 		dataRetrieve();
 		
 		if(option == "Extrato") printTransactions();
