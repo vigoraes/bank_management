@@ -266,6 +266,7 @@ public:
 				case 4:
 					transaction.init(u.id);
 					u.balance =transaction.deposit(u.balance);
+					updateData();
 					break;
 				case 5:
 					transaction.init(u.id);
