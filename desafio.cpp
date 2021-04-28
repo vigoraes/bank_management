@@ -2,19 +2,23 @@
 #include <sqlite3.h>
 #include <vector>
 #include <sstream>
+#include <chrono>
+#include <ctime>
 using namespace std;
+//using chrono::system_clock;
 
 //classe para tabela transações
 class Transactions{
 private:
 	int id_accountUser;
-	string option, now;
+	string option, s_now;
+
+	chrono::time_point<chrono::system_clock> now; 
 	
 	//struct e vetor que armazenam os dados
 	struct TRANSACTION{
 		int id, id_account;
 		double value;
-		//time_t t_hour;
 		string s_hour, type_transation;
 	};
 	vector<TRANSACTION> v;
@@ -31,9 +35,8 @@ public:
 		rc = sqlite3_open("base.db", &db);
 	}
 
-	void init(int id_accountUser, string option){
+	void init(int id_accountUser){
 		this->id_accountUser = id_accountUser;
-		this->option = option;
 
 		dataRetrieve();		
 	}
@@ -75,18 +78,19 @@ public:
 	}
 
 	int withDraw(double balance, string account_type){
+		option = "Saque";
 		double value;
-		cout << "Selecione o valor do saque que deseja efetuar: "; 
+		cout << "Selecione o valor que deseja sacar: (R$) "; 
 		cin >> value;
-
+		cout << "\n";
 		if(value > balance && account_type == "normal"){
 			cout << "\nNão é possível sacar o valor desejado. (Valor maior que saldo da conta)\n\n";
 			return 0;
 		}else{
-			balance -= value;
-
+			getNowString();
+			
 			//preparando o comando sql
-			string sql = "INSERT INTO accounts (horario, tipo, valor, id_conta) VALUES (" + now + ", " + account_type + ", " + to_string(value) + ", " + to_string(id_accountUser) + ");";
+			string sql = "INSERT INTO transações (horario, tipo, valor, id_conta) VALUES (\'" + s_now + "\', \'" + option + "\', " + to_string(value * -1) + ", " + to_string(id_accountUser) + ");";
 			//executando o comando e armazenando os dados na struct
 			rc = sqlite3_exec(db, sql.c_str(), callback_Transactions, &v, &zErrMsg);
 
@@ -94,14 +98,40 @@ public:
 		      fprintf(stderr, "SQL error: %s\n", zErrMsg);
 		      sqlite3_free(zErrMsg);
 		   	}
-
-		   	return balance;
+		   	return balance - value;
 	   	}
+	   	sqlite3_close(db);
 	}
 
-	// string getNowTime(){
+	int deposit(double balance){
+		option = "Depósito";
+		double value;
+		cout << "Selecione o valor que deseja depositar: (R$) ";
+		cin >> value;
+		cout << "\n";
 
-	// }
+		getNowString();
+			
+		//preparando o comando sql
+		string sql = "INSERT INTO transações (horario, tipo, valor, id_conta) VALUES (\'" + s_now + "\', \'" + option + "\', " + to_string(value) + ", " + to_string(id_accountUser) + ");";
+		//executando o comando e armazenando os dados na struct
+		rc = sqlite3_exec(db, sql.c_str(), callback_Transactions, &v, &zErrMsg);
+
+		if( rc != SQLITE_OK ) {
+	      fprintf(stderr, "SQL error: %s\n", zErrMsg);
+	      sqlite3_free(zErrMsg);
+	   	}
+		return balance + value;
+	}	
+
+	void getNowString(){
+		char d[80];
+		now = chrono::system_clock::now();
+		time_t now_c = chrono::system_clock::to_time_t(now);
+		tm now_tm = *std::localtime(&now_c);
+		strftime(d, 80, "%d/%m/%y %X", &now_tm);
+		s_now = d;
+	}
 
 	template <typename T>
 	string to_string_with_precision(const T a_value, const int n = 2){ 
@@ -204,6 +234,7 @@ public:
 	
 	void option(){
 		int choice; 
+		int newBalance;
 		while(true){
 			do{
 				cout << "Digite o número correspondente a opção desejada:\n\n1. Ver Saldo\n2. Extrato\n3. Saque\n4. Depósito\n5. Transferencia\n6. Solicitar visita do gerente \n7. Trocar de usuário\n8. Sair\n\n";
@@ -221,23 +252,29 @@ public:
 					cout << "Seu saldo é de R$ " << u.balance << endl << endl;
 					break;
 				case 2:
-					transaction.init(u.id, "Extrato");
+					transaction.init(u.id);
 					transaction.printTransactions();
 					break;
 				case 3:
-					transaction.init(u.id, "Saque");	
+					transaction.init(u.id);
+					newBalance = transaction.withDraw(u.balance, u.account_type);
+					if(newBalance != 0){
+						u.balance = newBalance;
+						updateData();
+					}	
 					break;
 				case 4:
-					transaction.init(u.id, "Depósito");
+					transaction.init(u.id);
+					u.balance =transaction.deposit(u.balance);
 					break;
 				case 5:
-					transaction.init(u.id, "Transferência");
+					transaction.init(u.id);
 					break;	
 				case 6:
 					break;
 			}
 		}
-		transaction.close();
+		// transaction.close();
 	}
 };
 
