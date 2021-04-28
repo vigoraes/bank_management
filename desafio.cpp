@@ -153,6 +153,15 @@ public:
 
 	   	//sqlite3_close(db);
 		return balance - value;
+	}
+
+	void chiefVisit(){
+		string option = "Visita";
+
+		getNowString();
+
+		string sql = "INSERT INTO transações (horario, tipo, valor, id_conta) VALUES (\'" + s_now + "\', \'" + option + "\', " + to_string(-50) + ", " + to_string(id_accountUser) + ");";
+		execute(sql);
 	}	
 
 	void getNowString(){
@@ -269,7 +278,7 @@ public:
 			}while(choice < 0 || choice > 9);
 			
 			if(choice == 8) break;
-			else if(choice == 7){
+			else if(choice == 7){				
 				Users user;
 				break;	
 			}
@@ -300,6 +309,13 @@ public:
 					updateData();
 					break;	
 				case 6:
+					if(u.account_type == "vip"){
+						transaction.init(u.id, db);
+						transaction.chiefVisit();
+						u.balance -= 50;
+						updateData();
+						cout << "Visita solicitada. Foram debitados 50 reais da sua conta.\n\n"; 
+					}else cout << "Seu tipo de conta não permite realizar essa operação\n\n";
 					break;
 			}
 		}
